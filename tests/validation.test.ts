@@ -2,14 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { hash, validateSnapshot, validateComparison } from '../scripts/validate.ts';
+import { hash, validateSnapshot, validateComparison, validateRequest } from '../scripts/validate.ts';
 const temporary = resolve('e2e/tmp'); mkdirSync(temporary,{recursive:true});
 function fixture(action: (root: string, snapshot: any, comparison: any, save: () => void) => void) {
   const root = mkdtempSync(resolve(temporary,'validation-'));
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
   writeFileSync(resolve(root,'reference.png'),png); writeFileSync(resolve(root,'ui.png'),png);
   const snapshot={schema_version:1,snapshot_id:'snapshot-one',captured_at:'2026-10-18T10:00:00Z',source:{provider:'figma',instance_url:'https://www.figma.com',document_id:'file-one',version:'version-one',provenance:'Test fixture, not remote evidence'},references:[{id:'screen-one',node_id:'1:2',label:'Screen',export_scale:1,variant:null,viewport:{width:390,height:844},theme:'light',locale:'ru',state:'ready',resource_id:'reference-one'}],resources:[{id:'reference-one',role:'reference',artifact:{path:'reference.png',sha256:hash(png),media_type:'image/png'},source:'test fixture',distribution:'allowed',parent_id:null,transform:null}],limitations:[]};
-  const comparison={schema_version:2,comparison_id:'review-one',created_at:'2026-10-18T10:02:00Z',snapshot:{path:'snapshot.json',sha256:''},pairs:[{id:'pair-one',scope:'Review fixture screen',comparability:{assessed:true,checks:Object.fromEntries(['state','viewport','scale','theme','locale','content','scroll_crop','fonts','animations'].map(key=>[key,'comparable'])),notes:'Controlled test fixture; no live visual assessment'},reference_id:'screen-one',ui:{repository:'example',revision:'test-revision',local_changes:false,provenance:'Synthetic test fixture',run_id:'run-one',spec:{path:'e2e/example.spec.ts',sha256:'a'.repeat(64)},step:'screen-visible',profile:'mobile',attempt:1,captured_at:'2026-10-18T10:01:00Z',viewport:{width:390,height:844},dpr:1,theme:'light',locale:'ru',state:'ready',artifact:{path:'ui.png',sha256:hash(png),media_type:'image/png'}},status:'matched',findings:[],limitations:[]}],limitations:[]};
+  const comparison={schema_version:3,request:{path:'request.json',sha256:''},comparison_id:'review-one',created_at:'2026-10-18T10:02:00Z',snapshot:{path:'snapshot.json',sha256:''},pairs:[{id:'pair-one',scope:'Review fixture screen',comparability:{assessed:true,checks:Object.fromEntries(['state','viewport','scale','theme','locale','content','scroll_crop','fonts','animations'].map(key=>[key,'comparable'])),notes:'Controlled test fixture; no live visual assessment'},reference_id:'screen-one',ui:{repository:'example',revision:'test-revision',local_changes:false,provenance:'Synthetic test fixture',run_id:'run-one',spec:{path:'e2e/example.spec.ts',sha256:'a'.repeat(64)},step:'screen-visible',profile:'mobile',attempt:1,captured_at:'2026-10-18T10:01:00Z',viewport:{width:390,height:844},dpr:1,theme:'light',locale:'ru',state:'ready',artifact:{path:'ui.png',sha256:hash(png),media_type:'image/png'}},status:'matched',findings:[],limitations:[]}],limitations:[]};
+  const request={schema_version:1,review_id:comparison.comparison_id,requested_at:'2026-10-18T09:00:00Z',pairs:comparison.pairs.map(p=>({id:p.id,scope:p.scope}))};
+  const requestBytes=JSON.stringify(request);writeFileSync(resolve(root,'request.json'),requestBytes);comparison.request.sha256=hash(requestBytes);
   const save=()=>{const bytes=JSON.stringify(snapshot);writeFileSync(resolve(root,'snapshot.json'),bytes);comparison.snapshot.sha256=hash(bytes);writeFileSync(resolve(root,'comparison.json'),JSON.stringify(comparison));};
   save();try{action(root,snapshot,comparison,save);}finally{rmSync(root,{recursive:true,force:true});}
 }
@@ -34,5 +36,20 @@ test('unknown fonts or unassessed conditions cannot yield matched',()=>fixture((
 }));
 test('reject stale comparison format and capture after review',()=>fixture((root,s,c,save)=>{
   c.schema_version=1;save();assert.throws(()=>validateComparison(root,'comparison.json'));
-  c.schema_version=2;c.pairs[0].ui.captured_at='2026-10-19T10:00:00Z';save();assert.throws(()=>validateComparison(root,'comparison.json'),/later/);
+  c.schema_version=3;c.pairs[0].ui.captured_at='2026-10-19T10:00:00Z';save();assert.throws(()=>validateComparison(root,'comparison.json'),/later/);
+}));
+
+test('request pins identity, scope and all pairs even when unreviewed',()=>fixture((root,s,c,save)=>{
+  c.pairs.push({...structuredClone(c.pairs[0]),id:'unrequested'});save();assert.throws(()=>validateComparison(root,'comparison.json'),/coverage/);
+}));
+test('changed scope and request bytes cannot silently narrow review',()=>fixture((root,s,c,save)=>{
+  c.pairs[0].scope='Only a smaller area';save();assert.throws(()=>validateComparison(root,'comparison.json'),/scope changed/);
+  writeFileSync(resolve(root,'request.json'),'{}');assert.throws(()=>validateComparison(root,'comparison.json'),/Request hash/);
+}));
+test('request rejects duplicate IDs, unknown fields and invalid date',()=>fixture((root,s,c)=>{
+  const request:any={schema_version:1,review_id:c.comparison_id,requested_at:'2026-10-18T09:00:00Z',pairs:[{id:'one',scope:'Header'}]};
+  const write=()=>writeFileSync(resolve(root,'request.json'),JSON.stringify(request));
+  request.pairs.push({...request.pairs[0]});write();assert.throws(()=>validateRequest(root,'request.json'),/duplicate/);
+  request.pairs.pop();request.unknown=true;write();assert.throws(()=>validateRequest(root,'request.json'));
+  delete request.unknown;request.requested_at='2026-02-30T09:00:00Z';write();assert.throws(()=>validateRequest(root,'request.json'));
 }));

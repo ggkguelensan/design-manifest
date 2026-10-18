@@ -2,6 +2,10 @@
 
 Читай для оценки соответствия. Это ревью реализации относительно конкретного reference, не автоматическая pixel-baseline проверка и не разрешение исправлять приложение или макет.
 
+## Область запроса
+
+До ревью сохрани request.json по [схеме запроса](../schemas/review-request.schema.json): review_id, requested_at и полный список pairs с ID и scope. Comparison закрепляет путь и hash запроса; каждому запрошенному ID соответствует ровно одна пара с тем же scope, включая not-reviewed. Измерения экспорта относятся к diagnostics/resources, не к запросу. Изменение области требует явного нового запроса и повторной оценки затронутых результатов. Валидатор проверяет идентичность области, но не доказывает согласие пользователя или полноту исходного задания.
+
 ## Сопоставимость
 
 Для пары зафиксируй UI run/attempt/profile, repository revision и состояние локальных изменений, spec path/hash, шаг и capture time. Сопоставь design reference, состояние, viewport CSS, DPR/export scale, тему, locale, контент, scroll/crop, fonts и animations. Сравнивай один и тот же смысловой экран, а не похожую композицию.
@@ -16,7 +20,7 @@
 
 ## Результат
 
-`comparison.json` использует `schema_version: 2` по [схеме](../schemas/comparison.schema.json); версия snapshot независима. Старые форматы отклоняются без автоматического преобразования. Каждая пара имеет findings и status: matched, mismatch, inconclusive, not-reviewed. Matched означает только отсутствие обнаруженных расхождений в проверенном scope; not-reviewed не превращается в matched. Mismatch имеет хотя бы одно finding с verdict mismatch; inconclusive содержит причину в limitations. Functional result запуска хранится отдельно.
+`comparison.json` использует `schema_version: 3` по [схеме](../schemas/comparison.schema.json); версия snapshot независима. Старые форматы отклоняются без автоматического преобразования. Каждая пара имеет findings и status: matched, mismatch, inconclusive, not-reviewed. Matched означает только отсутствие обнаруженных расхождений в проверенном scope; not-reviewed не превращается в matched. Mismatch имеет хотя бы одно finding с verdict mismatch; inconclusive содержит причину в limitations. Functional result запуска хранится отдельно.
 
 Общий вывод учитывает все запрошенные пары, включая отсутствующие/несопоставимые. Передай структурированный результат для отчёта; не меняй его verdict при форматировании. Рекомендации по исправлению отделяются от наблюдений. Автоисправление и повторное принятие дизайна требуют соответствующей задачи.
 

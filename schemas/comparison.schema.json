@@ -3,7 +3,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": 2
+      "const": 3
     },
     "comparison_id": {
       "type": "string",
@@ -396,6 +396,24 @@
         "pattern": "\\S"
       },
       "minItems": 0
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ]
     }
   },
   "required": [
@@ -404,7 +422,8 @@
     "created_at",
     "snapshot",
     "pairs",
-    "limitations"
+    "limitations",
+    "request"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ggkguelensan.github.io/design-manifest/schemas/comparison.schema.json"

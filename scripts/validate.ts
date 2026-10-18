@@ -12,6 +12,7 @@ const comparisonSchema = JSON.parse(readFileSync(resolve(base, 'schemas/comparis
 ajv.addSchema(snapshotSchema);
 const validateSnapshotShape = ajv.getSchema(snapshotSchema.$id)!;
 const validateComparisonShape = ajv.compile(comparisonSchema);
+const validateRequestShape = ajv.compile(JSON.parse(readFileSync(resolve(base, 'schemas/review-request.schema.json'), 'utf8')));
 export const hash = (value: Buffer | string) => createHash('sha256').update(value).digest('hex');
 function requireCondition(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 function unique(items: any[], label: string) {
@@ -55,9 +56,24 @@ export function validateSnapshot(root: string, path: string) {
   }
   return snapshot;
 }
+export function validateRequest(root: string, path: string) {
+  const request = JSON.parse(localFile(root, path).toString('utf8'));
+  requireCondition(validateRequestShape(request), ajv.errorsText(validateRequestShape.errors));
+  unique(request.pairs, 'requested pairs');
+  return request;
+}
 export function validateComparison(root: string, path: string) {
   const comparison = JSON.parse(localFile(root, path).toString('utf8'));
   requireCondition(validateComparisonShape(comparison), ajv.errorsText(validateComparisonShape.errors));
+  requireCondition(hash(localFile(root, comparison.request.path)) === comparison.request.sha256, 'Request hash mismatch');
+  const request = validateRequest(root, comparison.request.path);
+  requireCondition(request.review_id === comparison.comparison_id, 'Request review ID mismatch');
+  requireCondition(Date.parse(request.requested_at) <= Date.parse(comparison.created_at), 'Request is later than comparison');
+  requireCondition(request.pairs.length === comparison.pairs.length, 'Requested pair coverage mismatch');
+  for (const expected of request.pairs) {
+    const actual = comparison.pairs.find((pair: any) => pair.id === expected.id);
+    requireCondition(actual && actual.scope === expected.scope, `Requested pair missing or scope changed: ${expected.id}`);
+  }
   let snapshot: any = null;
   if (comparison.snapshot !== null) {
     requireCondition(hash(localFile(root, comparison.snapshot.path)) === comparison.snapshot.sha256, 'Snapshot hash mismatch');
@@ -97,8 +113,8 @@ export function validateComparison(root: string, path: string) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
-    requireCondition(args.length === 4 && args[0] === '--root' && ['--snapshot','--comparison'].includes(args[2]), 'Usage: validate.ts --root <directory> --snapshot|--comparison <relative.json>');
-    const data = args[2] === '--snapshot' ? validateSnapshot(args[1], args[3]) : validateComparison(args[1], args[3]);
-    console.log(JSON.stringify({ valid: true, id: data.snapshot_id ?? data.comparison_id, scope: 'schema, files, hashes, references; not visual correctness' }));
+    requireCondition(args.length === 4 && args[0] === '--root' && ['--snapshot','--comparison','--request'].includes(args[2]), 'Usage: validate.ts --root <directory> --snapshot|--comparison|--request <relative.json>');
+    const data = args[2] === '--request' ? validateRequest(args[1], args[3]) : args[2] === '--snapshot' ? validateSnapshot(args[1], args[3]) : validateComparison(args[1], args[3]);
+    console.log(JSON.stringify({ valid: true, id: data.snapshot_id ?? data.comparison_id ?? data.review_id, scope: 'schema, files, hashes, references; not visual correctness' }));
   } catch (error) { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; }
 }
