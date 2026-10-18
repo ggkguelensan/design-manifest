@@ -1,0 +1,86 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "base_revision",
+    "repository_id",
+    "target_id",
+    "modules",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "base_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "repository_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "figma",
+          "penpot",
+          "local"
+        ]
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "module",
+          "resource"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+          },
+          "module": {
+            "enum": [
+              "figma",
+              "penpot",
+              "local"
+            ]
+          },
+          "resource": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^resources/(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[:\\\\]).+\\.md$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
