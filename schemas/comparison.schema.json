@@ -1,0 +1,288 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "comparison_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ]
+    },
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "reference_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "ui": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "repository": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "local_changes": {
+                "type": "boolean"
+              },
+              "provenance": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "run_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "spec": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "sha256"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "step": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "profile": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "captured_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "viewport": {
+                "$ref": "https://ggkguelensan.github.io/design-manifest/schemas/design-snapshot.schema.json#/$defs/viewport"
+              },
+              "dpr": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "theme": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "locale": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "state": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "artifact": {
+                "$ref": "https://ggkguelensan.github.io/design-manifest/schemas/design-snapshot.schema.json#/$defs/artifact"
+              }
+            },
+            "required": [
+              "repository",
+              "revision",
+              "local_changes",
+              "provenance",
+              "run_id",
+              "spec",
+              "step",
+              "profile",
+              "attempt",
+              "captured_at",
+              "viewport",
+              "dpr",
+              "theme",
+              "locale",
+              "state",
+              "artifact"
+            ]
+          },
+          "status": {
+            "enum": [
+              "matched",
+              "mismatch",
+              "inconclusive",
+              "not-reviewed"
+            ]
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "category": {
+                  "enum": [
+                    "layout",
+                    "typography",
+                    "color",
+                    "asset",
+                    "content",
+                    "state",
+                    "responsive",
+                    "other"
+                  ]
+                },
+                "region": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "expected": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "observed": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "impact": {
+                  "enum": [
+                    "blocking",
+                    "major",
+                    "minor",
+                    "informational"
+                  ]
+                },
+                "confidence": {
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                },
+                "verdict": {
+                  "enum": [
+                    "mismatch",
+                    "inconclusive"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "category",
+                "region",
+                "expected",
+                "observed",
+                "impact",
+                "confidence",
+                "verdict"
+              ]
+            },
+            "minItems": 0
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "id",
+          "reference_id",
+          "ui",
+          "status",
+          "findings",
+          "limitations"
+        ]
+      },
+      "minItems": 1
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "comparison_id",
+    "created_at",
+    "snapshot",
+    "pairs",
+    "limitations"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ggkguelensan.github.io/design-manifest/schemas/comparison.schema.json"
+}
