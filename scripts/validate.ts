@@ -58,22 +58,40 @@ export function validateSnapshot(root: string, path: string) {
 export function validateComparison(root: string, path: string) {
   const comparison = JSON.parse(localFile(root, path).toString('utf8'));
   requireCondition(validateComparisonShape(comparison), ajv.errorsText(validateComparisonShape.errors));
-  requireCondition(hash(localFile(root, comparison.snapshot.path)) === comparison.snapshot.sha256, 'Snapshot hash mismatch');
-  const snapshot = validateSnapshot(root, comparison.snapshot.path);
-  const references = new Map<string, any>(snapshot.references.map((item: any) => [item.id, item]));
+  let snapshot: any = null;
+  if (comparison.snapshot !== null) {
+    requireCondition(hash(localFile(root, comparison.snapshot.path)) === comparison.snapshot.sha256, 'Snapshot hash mismatch');
+    snapshot = validateSnapshot(root, comparison.snapshot.path);
+  }
+  const references = new Map<string, any>((snapshot?.references ?? []).map((item: any) => [item.id, item]));
   unique(comparison.pairs, 'pairs');
   unique(comparison.pairs.flatMap((pair: any) => pair.findings), 'findings');
   for (const pair of comparison.pairs) {
     const reference = references.get(pair.reference_id);
-    requireCondition(reference, `Unknown reference: ${pair.reference_id}`);
-    requireCondition(pair.ui.artifact.media_type.startsWith('image/'), 'UI evidence must be an image');
-    artifact(root, pair.ui.artifact);
+    if (pair.reference_id !== null) requireCondition(reference, `Unknown reference: ${pair.reference_id}`);
+    if (pair.ui !== null) {
+      requireCondition(pair.ui.artifact.media_type.startsWith('image/'), 'UI evidence must be an image');
+      artifact(root, pair.ui.artifact);
+      requireCondition(Date.parse(pair.ui.captured_at) <= Date.parse(comparison.created_at), 'UI capture is later than comparison');
+    }
+    const conclusive = ['matched', 'mismatch'].includes(pair.status);
+    if (conclusive) {
+      requireCondition(reference && pair.ui, 'Conclusive pair requires both original sources');
+      requireCondition(pair.comparability.assessed && Object.values(pair.comparability.checks).every(value => value === 'comparable'), 'Conclusive pair requires assessed comparable conditions');
+    }
+    if (pair.status === 'not-reviewed') {
+      requireCondition(!pair.comparability.assessed && pair.findings.length === 0, 'Not-reviewed pair cannot contain completed assessment or findings');
+    }
+    if (!pair.comparability.assessed) requireCondition(Object.values(pair.comparability.checks).every(value => value === 'unknown'), 'Unassessed conditions must be unknown');
     if (pair.status === 'matched') requireCondition(pair.findings.length === 0, 'Matched pair cannot have unresolved findings');
     if (pair.status === 'mismatch') requireCondition(pair.findings.some((finding: any) => finding.verdict === 'mismatch'), 'Mismatch pair requires mismatch finding');
     if (pair.status === 'inconclusive' || pair.status === 'not-reviewed') requireCondition(pair.limitations.length, 'Incomplete pair requires limitations');
-    const comparable = ['theme','locale','state'].every(key => reference[key] === pair.ui[key]) && reference.viewport.width === pair.ui.viewport.width && reference.viewport.height === pair.ui.viewport.height;
-    if (!comparable) requireCondition(['inconclusive','not-reviewed'].includes(pair.status), 'Different conditions cannot yield a conclusive pair');
+    if (reference && pair.ui) {
+      const comparable = ['theme','locale','state'].every(key => reference[key] === pair.ui[key]) && reference.viewport.width === pair.ui.viewport.width && reference.viewport.height === pair.ui.viewport.height;
+      if (!comparable) requireCondition(!conclusive, 'Different conditions cannot yield a conclusive pair');
+    }
   }
+  if (snapshot) requireCondition(Date.parse(snapshot.captured_at) <= Date.parse(comparison.created_at), 'Design capture is later than comparison');
   return comparison;
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

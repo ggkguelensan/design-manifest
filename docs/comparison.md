@@ -4,7 +4,7 @@
 
 ## Сопоставимость
 
-Для пары зафиксируй UI run/attempt/profile, repository revision и состояние локальных изменений, spec path/hash, шаг и capture time. Сопоставь design reference, состояние, viewport CSS, DPR/export scale, тему, locale, контент и scroll/crop. Сравнивай один и тот же смысловой экран, а не похожую композицию.
+Для пары зафиксируй UI run/attempt/profile, repository revision и состояние локальных изменений, spec path/hash, шаг и capture time. Сопоставь design reference, состояние, viewport CSS, DPR/export scale, тему, locale, контент, scroll/crop, fonts и animations. Сравнивай один и тот же смысловой экран, а не похожую композицию.
 
 Если существенные условия различаются, результат пары — inconclusive. Опиши, что требуется повторно снять или уточнить. Отсутствие mobile-reference не разрешает объявлять mobile реализацию соответствующей desktop-макету. Приоритет форм-факторов берётся из согласованных предпочтений; остальные согласованные цели не пропускаются.
 
@@ -16,6 +16,14 @@
 
 ## Результат
 
-`comparison.json` соответствует [схеме](../schemas/comparison.schema.json). Каждая пара имеет findings и status: matched, mismatch, inconclusive, not-reviewed. Matched означает только отсутствие обнаруженных расхождений в проверенном scope; not-reviewed не превращается в matched. Mismatch имеет хотя бы одно finding с verdict mismatch; inconclusive содержит причину в limitations. Functional result запуска хранится отдельно.
+`comparison.json` использует `schema_version: 2` по [схеме](../schemas/comparison.schema.json); версия snapshot независима. Старые форматы отклоняются без автоматического преобразования. Каждая пара имеет findings и status: matched, mismatch, inconclusive, not-reviewed. Matched означает только отсутствие обнаруженных расхождений в проверенном scope; not-reviewed не превращается в matched. Mismatch имеет хотя бы одно finding с verdict mismatch; inconclusive содержит причину в limitations. Functional result запуска хранится отдельно.
 
 Общий вывод учитывает все запрошенные пары, включая отсутствующие/несопоставимые. Передай структурированный результат для отчёта; не меняй его verdict при форматировании. Рекомендации по исправлению отделяются от наблюдений. Автоисправление и повторное принятие дизайна требуют соответствующей задачи.
+
+## Неполные данные
+
+Запрошенную область каждой пары сохраняй в `scope`, даже если источников нет. Отсутствующий snapshot, reference или UI представляется `null` в соответствующем поле, без фиктивного файла или ID. Доступное evidence сохраняется независимо от отсутствующего.
+
+`comparability` фиксирует выполненную оценку условий. Каждое условие имеет значение comparable/different/unknown; `notes` объясняет основание оценки. При `assessed: false` все условия unknown. Not-reviewed не содержит findings и не отмечается как assessed. Для inconclusive/not-reviewed обязательно объяснение в limitations.
+
+Matched/mismatch требуют обоих источников, `assessed: true` и всех comparable. Валидатор также сверяет viewport/theme/locale/state, hashes и время получения относительно времени сравнения. Положительное значение checks — заявление ревьюера, а не автоматически измеренный факт: данные JSON не доказывают осмотр изображений или загрузку fonts.
