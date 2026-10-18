@@ -22,7 +22,7 @@ test('traversal and symlink escape rejected',()=>fixture((root,s,c,save)=>{s.res
 test('unknown version requires explicit limitation',()=>fixture((root,s,c,save)=>{s.source.version=null;save();assert.throws(()=>validateSnapshot(root,'snapshot.json'),/limitations/);s.limitations.push('Provider version unavailable');save();assert.ok(validateSnapshot(root,'snapshot.json'));}));
 test('derived resource cannot form a cycle',()=>fixture((root,s,c,save)=>{s.resources.push({...structuredClone(s.resources[0]),id:'derived-one',role:'derived',parent_id:'derived-one',transform:'annotation'});save();assert.throws(()=>validateSnapshot(root,'snapshot.json'),/cycle/);}));
 test('UI evidence binds to snapshot hash and known reference',()=>fixture((root,s,c,save)=>{c.pairs[0].reference_id='missing';save();assert.throws(()=>validateComparison(root,'comparison.json'),/Unknown reference/);c.pairs[0].reference_id='screen-one';save();c.snapshot.sha256='b'.repeat(64);writeFileSync(resolve(root,'comparison.json'),JSON.stringify(c));assert.throws(()=>validateComparison(root,'comparison.json'),/Snapshot hash/);}));
-test('different viewport is inconclusive, never matched',()=>fixture((root,s,c,save)=>{c.pairs[0].ui.viewport.width=1440;save();assert.throws(()=>validateComparison(root,'comparison.json'),/Different conditions/);c.pairs[0].status='inconclusive';c.pairs[0].limitations=['No desktop reference'];save();assert.ok(validateComparison(root,'comparison.json'));}));
+test('different viewport is inconclusive, never matched',()=>fixture((root,s,c,save)=>{c.pairs[0].ui.viewport.width=1440;save();assert.throws(()=>validateComparison(root,'comparison.json'),/Different conditions/);c.pairs[0].status='inconclusive';c.pairs[0].limitations=['No desktop reference'];c.pairs[0].comparability.checks.viewport='different';save();assert.ok(validateComparison(root,'comparison.json'));}));
 test('mismatch requires finding and matched cannot hide it',()=>fixture((root,s,c,save)=>{c.pairs[0].status='mismatch';save();assert.throws(()=>validateComparison(root,'comparison.json'),/requires mismatch/);c.pairs[0].findings.push({id:'finding-one',category:'layout',region:'header',expected:'Aligned title',observed:'Title overlaps navigation',impact:'major',confidence:'high',verdict:'mismatch'});save();assert.ok(validateComparison(root,'comparison.json'));c.pairs[0].status='matched';save();assert.throws(()=>validateComparison(root,'comparison.json'),/unresolved/);}));
 test('missing sources remain explicit without fabricated files',()=>fixture((root,s,c)=>{
   c.snapshot=null;const pair=c.pairs[0];pair.reference_id=null;pair.ui=null;pair.status='not-reviewed';pair.limitations=['No UI capture or design reference supplied'];pair.comparability={assessed:false,checks:Object.fromEntries(Object.keys(pair.comparability.checks).map(key=>[key,'unknown'])),notes:'Sources unavailable'};
@@ -52,4 +52,16 @@ test('request rejects duplicate IDs, unknown fields and invalid date',()=>fixtur
   request.pairs.push({...request.pairs[0]});write();assert.throws(()=>validateRequest(root,'request.json'),/duplicate/);
   request.pairs.pop();request.unknown=true;write();assert.throws(()=>validateRequest(root,'request.json'));
   delete request.unknown;request.requested_at='2026-02-30T09:00:00Z';write();assert.throws(()=>validateRequest(root,'request.json'));
+}));
+
+test('inconclusive does not allow comparable flags that contradict recorded sources',()=>fixture((root,s,c,save)=>{
+  const pair=c.pairs[0];pair.status='inconclusive';pair.limitations=['Conditions differ'];
+  for(const key of ['theme','locale','state']) {
+    const previous=pair.ui[key];pair.ui[key]='different';save();
+    assert.throws(()=>validateComparison(root,'comparison.json'),new RegExp(`Contradictory comparable condition: ${key}`));
+    pair.comparability.checks[key]='different';save();assert.ok(validateComparison(root,'comparison.json'));
+    pair.ui[key]=previous;pair.comparability.checks[key]='comparable';
+  }
+  pair.ui.viewport.width+=1;save();assert.throws(()=>validateComparison(root,'comparison.json'),/Contradictory comparable condition: viewport/);
+  pair.comparability.checks.viewport='unknown';save();assert.ok(validateComparison(root,'comparison.json'));
 }));

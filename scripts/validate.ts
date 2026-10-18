@@ -103,8 +103,16 @@ export function validateComparison(root: string, path: string) {
     if (pair.status === 'mismatch') requireCondition(pair.findings.some((finding: any) => finding.verdict === 'mismatch'), 'Mismatch pair requires mismatch finding');
     if (pair.status === 'inconclusive' || pair.status === 'not-reviewed') requireCondition(pair.limitations.length, 'Incomplete pair requires limitations');
     if (reference && pair.ui) {
-      const comparable = ['theme','locale','state'].every(key => reference[key] === pair.ui[key]) && reference.viewport.width === pair.ui.viewport.width && reference.viewport.height === pair.ui.viewport.height;
-      if (!comparable) requireCondition(!conclusive, 'Different conditions cannot yield a conclusive pair');
+      const observed: Record<string, boolean> = {
+        theme: reference.theme === pair.ui.theme,
+        locale: reference.locale === pair.ui.locale,
+        state: reference.state === pair.ui.state,
+        viewport: reference.viewport.width === pair.ui.viewport.width && reference.viewport.height === pair.ui.viewport.height,
+      };
+      if (Object.values(observed).some(equal => !equal)) requireCondition(!conclusive, 'Different conditions cannot yield a conclusive pair');
+      for (const [condition, equal] of Object.entries(observed)) {
+        requireCondition(equal || pair.comparability.checks[condition] !== 'comparable', `Contradictory comparable condition: ${condition}`);
+      }
     }
   }
   if (snapshot) requireCondition(Date.parse(snapshot.captured_at) <= Date.parse(comparison.created_at), 'Design capture is later than comparison');
