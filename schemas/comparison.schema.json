@@ -3,7 +3,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": 1
+      "const": 3
     },
     "comparison_id": {
       "type": "string",
@@ -14,21 +14,28 @@
       "format": "date-time"
     },
     "snapshot": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "path": {
-          "type": "string",
-          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ]
         },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+        {
+          "type": "null"
         }
-      },
-      "required": [
-        "path",
-        "sha256"
       ]
     },
     "pairs": {
@@ -42,126 +49,136 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "reference_id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "ui": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "repository": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "revision": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "local_changes": {
-                "type": "boolean"
-              },
-              "provenance": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "run_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "minLength": 1
-              },
-              "spec": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "path": {
-                        "type": "string",
-                        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "repository": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "local_changes": {
+                    "type": "boolean"
+                  },
+                  "provenance": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "run_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "spec": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "path": {
+                            "type": "string",
+                            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+                          },
+                          "sha256": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          }
+                        },
+                        "required": [
+                          "path",
+                          "sha256"
+                        ]
                       },
-                      "sha256": {
-                        "type": "string",
-                        "pattern": "^[a-f0-9]{64}$"
+                      {
+                        "type": "null"
                       }
-                    },
-                    "required": [
-                      "path",
-                      "sha256"
                     ]
                   },
-                  {
-                    "type": "null"
+                  "step": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "profile": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "attempt": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "captured_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "viewport": {
+                    "$ref": "https://ggkguelensan.github.io/design-manifest/schemas/design-snapshot.schema.json#/$defs/viewport"
+                  },
+                  "dpr": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "theme": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "locale": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "artifact": {
+                    "$ref": "https://ggkguelensan.github.io/design-manifest/schemas/design-snapshot.schema.json#/$defs/artifact"
                   }
+                },
+                "required": [
+                  "repository",
+                  "revision",
+                  "local_changes",
+                  "provenance",
+                  "run_id",
+                  "spec",
+                  "step",
+                  "profile",
+                  "attempt",
+                  "captured_at",
+                  "viewport",
+                  "dpr",
+                  "theme",
+                  "locale",
+                  "state",
+                  "artifact"
                 ]
               },
-              "step": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "minLength": 1
-              },
-              "profile": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "attempt": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "captured_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "viewport": {
-                "$ref": "https://ggkguelensan.github.io/design-manifest/schemas/design-snapshot.schema.json#/$defs/viewport"
-              },
-              "dpr": {
-                "type": "number",
-                "exclusiveMinimum": 0
-              },
-              "theme": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "locale": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "state": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "artifact": {
-                "$ref": "https://ggkguelensan.github.io/design-manifest/schemas/design-snapshot.schema.json#/$defs/artifact"
+              {
+                "type": "null"
               }
-            },
-            "required": [
-              "repository",
-              "revision",
-              "local_changes",
-              "provenance",
-              "run_id",
-              "spec",
-              "step",
-              "profile",
-              "attempt",
-              "captured_at",
-              "viewport",
-              "dpr",
-              "theme",
-              "locale",
-              "state",
-              "artifact"
             ]
           },
           "status": {
@@ -252,6 +269,110 @@
               "pattern": "\\S"
             },
             "minItems": 0
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "comparability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "assessed",
+              "checks",
+              "notes"
+            ],
+            "properties": {
+              "assessed": {
+                "type": "boolean"
+              },
+              "checks": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "state",
+                  "viewport",
+                  "scale",
+                  "theme",
+                  "locale",
+                  "content",
+                  "scroll_crop",
+                  "fonts",
+                  "animations"
+                ],
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "viewport": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "scale": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "theme": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "locale": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "content": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "scroll_crop": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "fonts": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  },
+                  "animations": {
+                    "enum": [
+                      "comparable",
+                      "different",
+                      "unknown"
+                    ]
+                  }
+                }
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            }
           }
         },
         "required": [
@@ -260,7 +381,9 @@
           "ui",
           "status",
           "findings",
-          "limitations"
+          "limitations",
+          "scope",
+          "comparability"
         ]
       },
       "minItems": 1
@@ -273,6 +396,24 @@
         "pattern": "\\S"
       },
       "minItems": 0
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[^\\s]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ]
     }
   },
   "required": [
@@ -281,7 +422,8 @@
     "created_at",
     "snapshot",
     "pairs",
-    "limitations"
+    "limitations",
+    "request"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ggkguelensan.github.io/design-manifest/schemas/comparison.schema.json"

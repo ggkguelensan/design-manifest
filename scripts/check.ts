@@ -1,3 +1,4 @@
+import './adaptation.ts';
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';

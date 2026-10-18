@@ -1,6 +1,6 @@
 ---
 name: collect-design-resources
-description: Collect a traceable design reference and related assets from Figma, Penpot or supplied exports for implementation or UI review. Use for snapshots and resource inventories, not for editing the design.
+description: Collect a traceable design reference and related assets from the selected project source for implementation or UI review. Use for snapshots and resource inventories, not for editing the design.
 ---
 
 # Collect design resources
