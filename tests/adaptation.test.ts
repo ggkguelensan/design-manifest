@@ -16,14 +16,14 @@ function fixture(action: (f: any) => void) {
   mkdirSync(resolve(dir,'resources'));
   const body='Local export supplied for the confirmed reservation state. No permission to modify source.';
   writeFileSync(resolve(dir,'resources/reference.md'),body);
-  const data:any={schema_version:1,base_revision:git(base,'rev-parse','HEAD'),repository_id:'frontend',target_id:'web',modules:['local'],sources:[{id:'reservation',module:'local',resource:{path:'resources/reference.md',sha256:createHash('sha256').update(body).digest('hex')}}]};
+  const data:any={schema_version:2,patches:[],base_revision:git(base,'rev-parse','HEAD'),repository_id:'frontend',target_id:'web',modules:['local'],sources:[{id:'reservation',module:'local',resource:{path:'resources/reference.md',sha256:createHash('sha256').update(body).digest('hex')}}]};
   const save=()=>writeFileSync(resolve(dir,'manifest.json'),JSON.stringify(data));save();
   const check=()=>validateAdaptation(dir,base,target,'frontend','web');
   try {action({root,base,target,dir,data,save,check});} finally {rmSync(root,{recursive:true,force:true});}
 }
 test('standalone adaptation validates selected target and source without provider access',()=>fixture(({check})=>{assert.deepEqual(check().modules,['local']);}));
 test('unknown formats settings identities and stale pins are rejected',()=>fixture(({data,save,check})=>{
- data.schema_version=2;save();assert.throws(check,/schema/);data.schema_version=1;
+ data.schema_version=1;save();assert.throws(check,/schema/);data.schema_version=2;
  data.viewport={width:390};save();assert.throws(check,/schema/);delete data.viewport;
  data.target_id='other';save();assert.throws(check,/identity/);data.target_id='web';
  data.base_revision='0'.repeat(40);save();assert.throws(check,/revision/);
@@ -36,4 +36,30 @@ test('unselected modules duplicate IDs and changed resources are rejected',()=>f
 test('dirty base and escaped resource cannot be activated',()=>fixture(({base,dir,data,save,check})=>{
  writeFileSync(resolve(base,'unexpected'),'dirty');assert.throws(check,/local changes/);rmSync(resolve(base,'unexpected'));
  symlinkSync(resolve(base,'.gitignore'),resolve(dir,'resources/escape.md'));data.sources[0].resource.path='resources/escape.md';save();assert.throws(check,/escapes/);
+}));
+function addPatch(f: any, id='contrast-review') {
+ mkdirSync(resolve(f.dir,'patches'),{recursive:true});
+ const patch:any={schema_version:1,id,base_revision:f.data.base_revision,status:'proposed',mode:'supplement',scope:['reservation'],area:'comparison',reason:'Review contrast evidence for this source',resource:structuredClone(f.data.sources[0].resource),conflicts_with:[],review:null};
+ const path=`patches/${id}.json`;f.data.patches.push(path);f.save();
+ const save=()=>writeFileSync(resolve(f.dir,path),JSON.stringify(patch));save();return {patch,save};
+}
+test('proposed patch remains separate; active requires current review',()=>fixture(f=>{
+ const p=addPatch(f);assert.equal(f.check().active_patches.length,0);assert.equal(f.check().proposed_patches.length,1);
+ p.patch.status='active';p.save();assert.throws(f.check,/requires review/);
+ p.patch.review={reviewed_at:'2020-01-01T00:00:00Z',review_due_at:'2099-01-01T00:00:00Z'};p.save();assert.equal(f.check().active_patches.length,1);
+ p.patch.review.review_due_at='2021-01-01T00:00:00Z';p.save();assert.throws(f.check,/expired/);
+ p.patch.review.review_due_at='2099-02-30T00:00:00Z';p.save();assert.throws(f.check,/schema/);
+}));
+test('patch cannot override guarantees or target an unknown source or base',()=>fixture(f=>{
+ const p=addPatch(f);p.patch.mode='override';p.save();assert.throws(f.check,/schema/);p.patch.mode='supplement';
+ p.patch.scope=['missing'];p.save();assert.throws(f.check,/unknown source/);p.patch.scope=['reservation'];
+ p.patch.base_revision='0'.repeat(40);p.save();assert.throws(f.check,/revision/);
+}));
+test('explicit conflicts are rejected without relying on patch order',()=>fixture(f=>{
+ const a=addPatch(f),b=addPatch(f,'other');
+ for(const p of [a,b]){p.patch.status='active';p.patch.review={reviewed_at:'2020-01-01T00:00:00Z',review_due_at:'2099-01-01T00:00:00Z'};p.save();}
+ a.patch.conflicts_with=['other'];a.save();assert.throws(f.check,/overlapping/);
+ f.data.patches.reverse();f.save();assert.throws(f.check,/overlapping/);
+ b.patch.status='proposed';b.save();assert.equal(f.check().active_patches.length,1);
+ a.patch.conflicts_with=['unknown'];a.save();assert.throws(f.check,/Unknown/);
 }));

@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+    },
+    "base_revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "status": {
+      "enum": [
+        "proposed",
+        "active"
+      ]
+    },
+    "mode": {
+      "const": "supplement"
+    },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+      }
+    },
+    "area": {
+      "enum": [
+        "resources",
+        "comparison",
+        "design-editing"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "resource": {
+      "$ref": "https://manifests.local/design/adaptation.schema.json#/$defs/resource"
+    },
+    "conflicts_with": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+      }
+    },
+    "review": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reviewed_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "review_due_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "reviewed_at",
+            "review_due_at"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "base_revision",
+    "status",
+    "mode",
+    "scope",
+    "area",
+    "reason",
+    "resource",
+    "conflicts_with",
+    "review"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

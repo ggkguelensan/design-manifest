@@ -7,11 +7,12 @@
     "repository_id",
     "target_id",
     "modules",
-    "sources"
+    "sources",
+    "patches"
   ],
   "properties": {
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "base_revision": {
       "type": "string",
@@ -61,26 +62,40 @@
             ]
           },
           "resource": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "path",
-              "sha256"
-            ],
-            "properties": {
-              "path": {
-                "type": "string",
-                "pattern": "^resources/(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[:\\\\]).+\\.md$"
-              },
-              "sha256": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{64}$"
-              }
-            }
+            "$ref": "#/$defs/resource"
           }
         }
       }
+    },
+    "patches": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^patches/[a-z0-9-]+\\.json$"
+      }
     }
   },
-  "$schema": "https://json-schema.org/draft/2020-12/schema"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://manifests.local/design/adaptation.schema.json",
+  "$defs": {
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^resources/(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[:\\\\]).+\\.md$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
 }
